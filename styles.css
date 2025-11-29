@@ -1,0 +1,217 @@
+.agent-bubble {
+  background: #ffffff;
+  width: 380px;
+  max-width: 90vw;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05); /* Subtle border ring */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.2s ease;
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* --- Header Section --- */
+.bubble-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid transparent;
+}
+
+.agent-icon {
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.agent-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  flex-grow: 1;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* --- Context Pill (The "Selection" Indicator) --- */
+.context-pill {
+  margin: 0 16px 8px;
+  padding: 4px 8px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: #1e40af;
+}
+
+.pill-label {
+  font-weight: 600;
+  margin-right: 6px;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.pill-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.8;
+}
+
+/* --- Input Area --- */
+.input-area {
+  padding: 8px 16px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+#agent-input {
+  flex-grow: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: none; /* Auto-expand handled by JS ideally, or fixed for now */
+  outline: none;
+  background: #f9fafb;
+  color: #111827;
+  font-family: inherit;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+#agent-input:focus {
+  background: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+#mic-btn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  width: 36px;
+  height: 38px; /* Match input height roughly */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+#mic-btn:hover {
+  background: #e5e7eb;
+}
+
+#mic-btn.listening {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+}
+
+/* --- Result Area (The Popover) --- */
+.result-area {
+  border-top: 1px solid #f3f4f6;
+  padding: 16px;
+  background: #ffffff;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.result-area.hidden {
+  display: none;
+}
+
+/* Markdown Styling Simulation */
+.markdown-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.markdown-content p {
+  margin: 0 0 10px;
+}
+
+.markdown-content code {
+  background: #f3f4f6;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+/* --- Loading Spinner --- */
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.loading-spinner::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-spinner.hidden {
+  display: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

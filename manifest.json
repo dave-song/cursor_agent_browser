@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Cursor Agent",
+  "version": "1.0.0",
+  "description": "A cursor-first AI interaction layer for the web.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": ["https://api.openai.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["styles.css", "images/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "images/cursor_agent_16.png",
+    "48": "images/cursor_agent_48.png",
+    "128": "images/cursor_agent_128.png"
+  }
+}
