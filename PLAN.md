@@ -15,8 +15,9 @@ Plan for the agent customization panel, secure API key handling, custom shortcut
 | **2c** | ⬜ Not started | Unlock flow: background keeps decrypted key in memory after unlock. |
 | **3** | ⬜ Not started | Custom shortcuts in popup and in bubble. |
 | **4** | ⬜ Not started | Provider (OpenAI / Local) + local URL in popup and background. |
+| **5** | ⬜ Not started | Persistent conversation memory: per-tab sliding window of last N messages, sent with each API call. |
 
-**Current state:** Steps 1a and 1b are implemented and committed (popup + API key in storage). All later steps (scoping, passphrase, custom shortcuts, provider choice) are still to do.
+**Current state:** Steps 1a and 1b are implemented (popup + API key in storage). Bubble UX additions (pin, resize, shortcut-hint hotkey on hover) are in place. All later plan steps (scoping, passphrase, custom shortcuts, provider choice, persistent memory) are still to do.
 
 ---
 
@@ -84,6 +85,29 @@ Plan for the agent customization panel, secure API key handling, custom shortcut
 
 ---
 
+## 6. Persistent conversation memory (few-turn history)
+
+**Goal:** Make interactions multi-turn instead of one-off. The agent should have access to recent chat history when answering so it can reference prior questions and answers. This matches the common approach used by products that call external reasoning/chat APIs.
+
+**Approach: sliding window of messages (industry standard)**
+
+- **Stateless API:** The external API (e.g. OpenAI) does not store conversation; it only receives a `messages` array per request. Our app is responsible for keeping and trimming history.
+- **Where to store:** In the **background script**, keyed by **tab** (e.g. `tabId → array of { role, content }`). Use `sender.tab.id` in the message listener to get the current tab.
+- **What to store:** For each turn, append:
+  - `{ role: 'user', content: '<what we sent for this turn>' }`
+  - `{ role: 'assistant', content: '<model reply>' }`
+- **What to send each request:** Build `messages = [ systemMessage, ...last N history messages, currentUserMessage ]`, then call the API. Current user message continues to include page context + new query (unchanged format).
+- **Limit:** Keep a **sliding window** of the last **N messages** (e.g. 10–20 messages = 5–10 exchanges). When adding a new pair, drop the oldest so the list never exceeds the cap. This balances context quality, cost, and context-window limits.
+- **When to clear:** Option A: clear that tab’s history when the bubble is closed (fresh conversation each open). Option B (recommended): don’t clear on bubble close; clear when the **tab is closed** (e.g. listen to `chrome.tabs.onRemoved`) or when the user explicitly starts a “New conversation” (optional UI later). That way reopening the bubble in the same tab continues the thread.
+- **Optional later:** Token/character budget instead of message count; or summarize older turns and send “conversation summary” + recent messages for very long sessions.
+
+**Implementation outline**
+
+- **Background:** Maintain `chatHistoryByTab = new Map()` (tabId → array). On `QUERY_AI`: get history for `sender.tab.id`, build messages with system + last N of history + current user message, call API, append user and assistant to history, trim to last N, store back, send response to content script. Optionally clear entry in `chrome.tabs.onRemoved`.
+- **Content script:** No change to how the current message is built (context + prompt). Keep sending a single `QUERY_AI` with prompt and context; the background adds history and returns the reply.
+
+---
+
 ## Implementation Order
 
 | Step | What |
@@ -95,6 +119,7 @@ Plan for the agent customization panel, secure API key handling, custom shortcut
 | **2c** | Unlock flow: background keeps decrypted key in memory when popup sends it after unlock; if storage has encrypted key and no in-memory key, return “Please open extension and unlock”; content script shows that message. |
 | **3** | Custom shortcuts in popup and in bubble. |
 | **4** | Provider (OpenAI / Local) + local URL in popup and background. |
+| **5** | Persistent memory: background keeps per-tab sliding window of last N messages (e.g. 10–20); send with each QUERY_AI; clear on tab close (optional: “New conversation” in UI). |
 
 ---
 
