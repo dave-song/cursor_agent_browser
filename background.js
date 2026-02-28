@@ -13,18 +13,25 @@ However, you also want to be snarky and humorous at times to keep the user enter
 - Format your response in Markdown.
 `;
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // checking for the message type from the content.js
-  if (request.type === "QUERY_AI") {
-    // check for the user api key
-    if (typeof CONFIG === "undefined" || !CONFIG.OPENAI_API_KEY) {
-      sendResponse({ result: "Error: API Key missing. Check config.js." });
-      return true;
-    }
+const STORAGE_API_KEY = "openai_api_key";
 
-    // Construct the Prompt
-    // We combine the user's query with the page context
-    const userMessage = `
+async function getApiKey() {
+  const result = await chrome.storage.local.get([STORAGE_API_KEY]);
+  if (result[STORAGE_API_KEY]) return result[STORAGE_API_KEY];
+  if (typeof CONFIG !== "undefined" && CONFIG.OPENAI_API_KEY) return CONFIG.OPENAI_API_KEY;
+  return null;
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === "QUERY_AI") {
+    (async () => {
+      const apiKey = await getApiKey();
+      if (!apiKey) {
+        sendResponse({ result: "Error: API key missing. Open the extension (click the icon) and add your OpenAI API key in Settings." });
+        return;
+      }
+
+      const userMessage = `
       CONTEXT:
       ${request.context}
       
@@ -32,42 +39,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       ${request.prompt}
     `;
 
-    // Call OpenAI API
-    fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${CONFIG.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
-        max_tokens: 700,
-        temperature: 0.7,
-      }),
-    })
-      .then((response) => {
+      try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: userMessage },
+            ],
+            max_tokens: 700,
+            temperature: 0.7,
+          }),
+        });
         if (!response.ok) {
           throw new Error(`API Error: ${response.status}`);
         }
-        return response.json();
-      })
-      .then((data) => {
-        // Send the result back to Content Script (content.js)
+        const data = await response.json();
         const answer = data.choices[0].message.content;
         sendResponse({ result: answer });
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Cursor Agent Error:", error);
         sendResponse({
           result:
             "Sorry, I encountered an error talking to the AI. Check the console.",
         });
-      });
-
-    return true; // Keep the message channel open for the async fetch
+      }
+    })();
+    return true; // Keep the message channel open for async sendResponse
   }
 });
