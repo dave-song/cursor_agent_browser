@@ -545,37 +545,32 @@ function createShortcutHint() {
   // Check if hint already exists
   if (document.getElementById("cursor-agent-hint")) return;
 
-  const modifierKey = "Option";
-
   const hint = document.createElement("div");
   hint.id = "cursor-agent-hint";
   hint.className = "cursor-agent-shortcut-hint";
   hint.style.cssText = `
     position: fixed !important;
-    bottom: 12px !important;
+    top: 50% !important;
     left: 12px !important;
+    transform: translateY(-50%) !important;
     z-index: 1000 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
-    padding: 8px 12px !important;
-    background: rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    border-radius: 24px !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-    font-size: 14px !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    justify-content: center !important;
+    padding: 6px !important;
+    background: rgba(0, 0, 0, 0.06) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
     pointer-events: none !important;
     user-select: none !important;
   `;
-  hint.innerHTML = `
-    <img src="${chrome.runtime.getURL(
-      "images/agent_cursor.svg"
-    )}" alt="Agent Icon">
-    <span class="hint-text"><kbd>${modifierKey}</kbd> + <kbd>K</kbd></span>
-  `;
+  const img = document.createElement("img");
+  img.src = chrome.runtime.getURL("images/agent_cursor.svg");
+  img.alt = "Agent shortcut";
+  img.style.cssText = "width: 20px !important; height: 20px !important; opacity: 0.6 !important;";
+  hint.appendChild(img);
   document.body.appendChild(hint);
 }
 
