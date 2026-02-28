@@ -1,10 +1,11 @@
+/* For overall agent bubble UI */
 .agent-bubble {
   background: #ffffff;
   width: 380px;
   max-width: 90vw;
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05); /* Subtle border ring */
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
   overflow: hidden;
@@ -14,7 +15,16 @@
   animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* For applying the semi trasparent look to the ui */
+.agent-bubble-glass {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(17.1px);
+  -webkit-backdrop-filter: blur(17.1px);
+}
+
+/* when appearing, I want it to appear with some smooth animation */
 @keyframes popIn {
+  /* could be snappier but this is good enough for MVP */
   from {
     opacity: 0;
     transform: scale(0.95) translateY(5px);
@@ -25,7 +35,7 @@
   }
 }
 
-/* --- Header Section --- */
+/* bubble header section */
 .bubble-header {
   display: flex;
   align-items: center;
@@ -33,11 +43,21 @@
   border-bottom: 1px solid transparent;
 }
 
+/* Service Logo Formatting Wrap */
 .agent-icon {
-  font-size: 16px;
+  display: flex;
+  align-items: center;
   margin-right: 8px;
 }
 
+/* Service Logo Karet Sizing */
+.agent-icon img {
+  height: 12px;
+  width: 12px;
+  object-fit: contain;
+}
+
+/* Karet. title formatting */
 .agent-title {
   font-size: 13px;
   font-weight: 600;
@@ -45,6 +65,38 @@
   flex-grow: 1;
 }
 
+/* Text / Voice input modes style */
+.mode-badge {
+  font-size: 10px;
+  font-weight: 600;
+  margin-right: 8px;
+  padding: 3px 8px;
+  gap: 4px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.mode-label {
+  font-size: 10px;
+  padding: 3px 8px;
+  font-weight: 600;
+  margin-right: 4px;
+  color: #515255;
+}
+
+/* Mode spcific styling */
+.mode-badge.text-mode {
+  background: #dbeafe;
+  color: #515255;
+}
+
+.mode-badge.voice-mode {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+/* the x button forthe agent bubble */
 .close-btn {
   background: transparent;
   border: none;
@@ -61,19 +113,20 @@
   color: #4b5563;
 }
 
-/* --- Context Pill (The "Selection" Indicator) --- */
+/* "context ui" when user selects some texts */
 .context-pill {
-  margin: 0 16px 8px;
-  padding: 4px 8px;
   background: #eff6ff;
   border: 1px solid #dbeafe;
   border-radius: 6px;
+  margin: 0 16px 8px;
+  padding: 4px 8px;
   display: flex;
   align-items: center;
   font-size: 11px;
   color: #1e40af;
 }
 
+/* styling for context: labeling goes inside the ui */
 .pill-label {
   font-weight: 600;
   margin-right: 6px;
@@ -81,14 +134,88 @@
   font-size: 10px;
 }
 
+/* for the context text styling  */
 .pill-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0.8;
+  flex: 1;
 }
 
-/* --- Input Area --- */
+/* for x btn inside the context pill ui */
+.pill-clear {
+  background: transparent;
+  border: none;
+  color: #1e40af;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.pill-clear:hover {
+  opacity: 1;
+}
+
+/* Shortcut buttons section */
+.shortcut-buttons {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 3px;
+  flex-wrap: wrap;
+}
+
+.shortcut-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 16px;
+  font-size: 8px;
+  font-weight: 500;
+  color: #0369a1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.shortcut-btn:hover {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border-color: #7dd3fc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(3, 105, 161, 0.15);
+}
+
+.shortcut-btn:active {
+  transform: translateY(0);
+}
+
+.shortcut-icon {
+  font-size: 12px;
+}
+
+.shortcut-label {
+  font-size: 11px;
+}
+
+/* copied from google ai overview code section for pulsing ui css */
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+    background: #dbeafe;
+  }
+}
+
+/* Style for input box */
 .input-area {
   padding: 8px 16px 16px;
   display: flex;
@@ -96,6 +223,7 @@
   align-items: flex-start;
 }
 
+/* input text */
 #agent-input {
   flex-grow: 1;
   border: 1px solid #e5e7eb;
@@ -103,7 +231,7 @@
   padding: 10px 12px;
   font-size: 14px;
   line-height: 1.4;
-  resize: none; /* Auto-expand handled by JS ideally, or fixed for now */
+  resize: none;
   outline: none;
   background: #f9fafb;
   color: #111827;
@@ -111,6 +239,7 @@
   transition: border-color 0.15s, background-color 0.15s;
 }
 
+/* when the input box is focused//clicked */
 #agent-input:focus {
   background: #ffffff;
   border-color: #3b82f6;
@@ -122,7 +251,7 @@
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   width: 36px;
-  height: 38px; /* Match input height roughly */
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,6 +271,7 @@
   animation: pulse 1.5s infinite;
 }
 
+/* similar pulse css */
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
@@ -154,40 +284,125 @@
   }
 }
 
-/* --- Result Area (The Popover) --- */
+/* result display area from the LLM */
 .result-area {
-  border-top: 1px solid #f3f4f6;
+  /* wanted to display it in a bit more transparent */
   padding: 16px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(17.1px);
+  -webkit-backdrop-filter: blur(17.1px);
   max-height: 300px;
   overflow-y: auto;
+
+  /* Force GPU acceleration to prevent flickering? Got this from gemini  */
+  transform: translateZ(0);
+  will-change: transform;
+  -webkit-transform: translate3d(0, 0, 0);
 }
 
 .result-area.hidden {
   display: none;
 }
 
-/* Markdown Styling Simulation */
+/* Markdown CSS once we get markdwon -> HTML elements -> for results UI display */
 .markdown-content {
   font-size: 14px;
   line-height: 1.6;
   color: #374151;
 }
 
-.markdown-content p {
-  margin: 0 0 10px;
+/* Headings */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  margin: 16px 0 8px;
+  font-weight: 600;
 }
 
+.markdown-content h1 {
+  font-size: 20px;
+}
+
+.markdown-content h2 {
+  font-size: 18px;
+}
+
+.markdown-content h3 {
+  font-size: 16px;
+}
+
+/* Paragraphs */
+.markdown-content p {
+  margin: 0 0 12px;
+}
+
+/* Lists */
+.markdown-content ul,
+.markdown-content ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+/* List */
+.markdown-content li {
+  margin: 4px 0;
+}
+
+/* Code UI */
+.markdown-content pre {
+  background: #2a313d;
+  color: #e2e8f0;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.markdown-content pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+/* for inline code elements */
 .markdown-content code {
   background: #f3f4f6;
-  padding: 2px 4px;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-family: monospace;
-  font-size: 12px;
+  font-family: "Monaco", "Menlo", monospace;
+  font-size: 13px;
   color: #ef4444;
 }
 
+/* links -> conventional blue */
+.markdown-content a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+/* Bold/Italic */
+.markdown-content strong {
+  font-weight: 600;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+/* Blockquotes */
+.markdown-content blockquote {
+  border-left: 3px solid #3b82f6;
+  padding-left: 12px;
+  margin: 12px 0;
+  color: #6b7280;
+}
+
 /* --- Loading Spinner --- */
+/* source: https://www.w3schools.com/howto/howto_css_loader.asp */
 .loading-spinner {
   display: flex;
   align-items: center;
