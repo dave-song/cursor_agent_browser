@@ -4,6 +4,22 @@ Plan for the agent customization panel, secure API key handling, custom shortcut
 
 ---
 
+## Progress vs initial plan
+
+| Step | Status | Notes |
+|------|--------|--------|
+| **1a** | ✅ Done | Popup shell: `popup/popup.html`, `popup/popup.js`, manifest `action.default_popup`, API key input + Save → `chrome.storage.local`. |
+| **1b** | ✅ Done | Background reads key from `chrome.storage.local` first; falls back to `CONFIG.OPENAI_API_KEY` (config.js) for dev. |
+| **2a** | ⬜ Not started | API key scoping: in-popup note + “How to create a limited key” link. |
+| **2b** | ⬜ Not started | Passphrase: optional encrypt-at-rest with PBKDF2 + AES-GCM. |
+| **2c** | ⬜ Not started | Unlock flow: background keeps decrypted key in memory after unlock. |
+| **3** | ⬜ Not started | Custom shortcuts in popup and in bubble. |
+| **4** | ⬜ Not started | Provider (OpenAI / Local) + local URL in popup and background. |
+
+**Current state:** Steps 1a and 1b are implemented and committed (popup + API key in storage). All later steps (scoping, passphrase, custom shortcuts, provider choice) are still to do.
+
+---
+
 ## 1. Popup Shell and API Key in Storage
 
 - **Add** `popup/popup.html` and `popup/popup.js`; set `action.default_popup` in `manifest.json` so clicking the extension icon opens the settings card.

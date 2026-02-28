@@ -8,6 +8,11 @@ let mouseY = 0;
 let shortcutPressTime = 0;
 let shortcutPressed = false;
 let cursorFollowEnabled = true;
+let isDragging = false;
+let mouseOverBubble = false;
+let bubbleWidth = 380;
+let bubbleHeight = 260;
+let isResizing = false;
 
 // [to be implemented] For voice recording features.
 // whisper api does not provide a good UX. Looking into ways to incorporate real time
@@ -24,8 +29,7 @@ document.addEventListener("mousemove", (event) => {
   mouseX = event.clientX;
   mouseY = event.clientY;
 
-  // Update bubble position if it's open and cursor following is enabled
-  if (shadowHost && shadowHost.isConnected && cursorFollowEnabled) {
+  if (shadowHost && shadowHost.isConnected && cursorFollowEnabled && !mouseOverBubble && !isDragging && !isResizing) {
     updateBubblePosition(mouseX, mouseY);
   }
 });
@@ -100,11 +104,13 @@ function spawnBubble(x, y, mode = "text") {
     return;
   }
 
-  // Change cursor appearance
   const cursorUrl = chrome.runtime.getURL("images/agent_cursor.svg");
   document.body.style.cursor = `url('${cursorUrl}') 12 12, crosshair`;
 
-  // getting "context" of the page or user's selection.
+  cursorFollowEnabled = true;
+  isDragging = false;
+  isResizing = false;
+
   const contextData = captureContext();
 
   // Create Shadow DOM for the actual AI bubble UI
@@ -129,10 +135,12 @@ function spawnBubble(x, y, mode = "text") {
   container.className = "agent-bubble agent-bubble-glass";
   container.innerHTML = `
     <div class="bubble-header">
-      <span class="agent-icon"><img src="${chrome.runtime.getURL(
-        "images/sunset_logo.svg"
-      )}" alt="Agent Icon"></span>
-      <span class="agent-title">Karet.</span>
+      <div class="agent-brand">
+        <span class="agent-icon"><img src="${chrome.runtime.getURL(
+          "images/sunset_logo.svg"
+        )}" alt="Agent Icon"></span>
+        <span class="agent-title">Karet.</span>
+      </div>
       <span class = "mode-label">Mode</span>
       <span class="mode-badge ${
         mode === "voice" ? "voice-mode" : "text-mode"
@@ -175,6 +183,7 @@ function spawnBubble(x, y, mode = "text") {
       <div class="loading-spinner hidden">Thinking...</div>
       <div class="markdown-content"></div>
     </div>
+    <div class="resize-handle" title="Drag to resize"></div>
   `;
 
   // attaching the ui element above to the shadow root.
@@ -211,27 +220,21 @@ function closeBubble() {
   }
 }
 
-// helper function for updating the bubble position to follow the cursor
 function updateBubblePosition(x, y) {
-  // if the bubble is now open, we just return. Nothing to update here.
   if (!shadowHost) return;
+  if (!cursorFollowEnabled) return;
 
-  // we want to offset the left top corner to prevent the bubble from covering the pointer.
   const offsetX = 20;
   const offsetY = 20;
-  // setting the buttle width and height for now.
-  const bubbleWidth = 400;
-  const bubbleHeight = 300;
+  const spawnX = Math.max(0, Math.min(x + offsetX, window.innerWidth - bubbleWidth));
+  const spawnY = Math.max(0, Math.min(y + offsetY, window.innerHeight - bubbleHeight));
 
-  // checking the window width and height to prevent the cutoff
-  const spawnX = Math.min(x + offsetX, window.innerWidth - bubbleWidth);
-  const spawnY = Math.min(y + offsetY, window.innerHeight - bubbleHeight);
-
-  // positioning and styling the bubble
   shadowHost.style.cssText = `
     position: fixed;
     top: ${spawnY}px;
     left: ${spawnX}px;
+    width: ${bubbleWidth}px;
+    height: ${bubbleHeight}px;
     z-index: 1000;
     font-family: sans-serif;
     transition: top 0.1s ease-out, left 0.1s ease-out;
@@ -265,6 +268,95 @@ function setupBubbleListeners(root, contextData, mode) {
   const modeBadge = root.querySelector(".mode-badge");
   const summarizeBtn = root.getElementById("summarize-btn");
   const refineBtn = root.getElementById("refine-btn");
+  const agentBrand = root.querySelector(".agent-brand");
+  const agentIconImg = agentBrand ? agentBrand.querySelector(".agent-icon img") : null;
+  const container = root.querySelector(".agent-bubble");
+
+  container.style.width = bubbleWidth + "px";
+  container.style.height = bubbleHeight + "px";
+  container.style.boxSizing = "border-box";
+
+  const LOGO_URL = chrome.runtime.getURL("images/sunset_logo.svg");
+  const PIN_ICON_URL = chrome.runtime.getURL("images/pin_icon.svg");
+
+  if (container) {
+    container.addEventListener("mouseenter", () => { mouseOverBubble = true; });
+    container.addEventListener("mouseleave", () => { mouseOverBubble = false; });
+  }
+
+  const setLogoIcon = (pinned) => {
+    if (!agentIconImg) return;
+    agentIconImg.src = pinned ? PIN_ICON_URL : LOGO_URL;
+    agentIconImg.alt = pinned ? "Pinned – drag to move" : "Agent Icon";
+    if (agentBrand) agentBrand.classList.toggle("pinned", !cursorFollowEnabled);
+  };
+
+  if (agentBrand && agentIconImg) {
+    agentBrand.setAttribute("title", "Click to pin in place; drag to move");
+
+    agentBrand.addEventListener("mouseenter", () => {
+      if (isDragging) return;
+      if (!cursorFollowEnabled) return;
+      agentIconImg.src = PIN_ICON_URL;
+    });
+    agentBrand.addEventListener("mouseleave", () => {
+      if (isDragging) return;
+      if (cursorFollowEnabled) agentIconImg.src = LOGO_URL;
+    });
+
+    let didDrag = false;
+    const DRAG_THRESHOLD_PX = 5;
+
+    agentBrand.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      didDrag = false;
+      if (cursorFollowEnabled) return;
+      e.preventDefault();
+      e.stopPropagation();
+      isDragging = true;
+      const rect = shadowHost.getBoundingClientRect();
+      let startX = e.clientX;
+      let startY = e.clientY;
+      let startLeft = rect.left;
+      let startTop = rect.top;
+      const prevTransition = shadowHost.style.transition;
+      shadowHost.style.transition = "none";
+
+      const onMove = (moveEvent) => {
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        if (Math.abs(dx) > DRAG_THRESHOLD_PX || Math.abs(dy) > DRAG_THRESHOLD_PX) didDrag = true;
+        let newLeft = startLeft + dx;
+        let newTop = startTop + dy;
+        newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - bubbleWidth));
+        newTop = Math.max(0, Math.min(newTop, window.innerHeight - bubbleHeight));
+        shadowHost.style.left = newLeft + "px";
+        shadowHost.style.top = newTop + "px";
+        startLeft = newLeft;
+        startTop = newTop;
+        startX = moveEvent.clientX;
+        startY = moveEvent.clientY;
+      };
+      const onUp = () => {
+        isDragging = false;
+        shadowHost.style.transition = prevTransition || "";
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        setTimeout(() => { didDrag = false; }, 0);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+
+    agentBrand.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isDragging || didDrag) return;
+      cursorFollowEnabled = !cursorFollowEnabled;
+      setLogoIcon(!cursorFollowEnabled);
+      agentBrand.setAttribute("title", cursorFollowEnabled ? "Click to pin in place; drag to move" : "Drag to move · click to unpin");
+    });
+  }
 
   // Set initial mode
   currentMode = mode;
@@ -388,7 +480,6 @@ function setupBubbleListeners(root, contextData, mode) {
   });
 
   // Stop all keyboard events from bubbling to the page
-  const container = root.querySelector(".agent-bubble");
   container.addEventListener("keydown", (e) => {
     e.stopPropagation();
   });
@@ -425,15 +516,48 @@ function setupBubbleListeners(root, contextData, mode) {
     selectionTimeout = setTimeout(selectionHandler, 300);
   });
 
-  // Disable cursor following when mouse is over the bubble
-  container.addEventListener("mouseenter", () => {
-    cursorFollowEnabled = false;
-  });
+  // Resize handle
+  const resizeHandle = root.querySelector(".resize-handle");
+  if (resizeHandle) {
+    const MIN_WIDTH = 320;
+    const MIN_HEIGHT = 180;
+    const MAX_WIDTH = 600;
+    const MAX_HEIGHT = Math.max(500, Math.floor(window.innerHeight * 0.85));
 
-  // Enable the cursor following feature then mouse leaves the bubble
-  container.addEventListener("mouseleave", () => {
-    cursorFollowEnabled = true;
-  });
+    resizeHandle.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      isResizing = true;
+      let startX = e.clientX;
+      let startY = e.clientY;
+      let startW = bubbleWidth;
+      let startH = bubbleHeight;
+
+      const onMove = (moveEvent) => {
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        let newW = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startW + dx));
+        let newH = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, startH + dy));
+        bubbleWidth = newW;
+        bubbleHeight = newH;
+        shadowHost.style.width = newW + "px";
+        shadowHost.style.height = newH + "px";
+        const containerEl = root.querySelector(".agent-bubble");
+        if (containerEl) {
+          containerEl.style.width = newW + "px";
+          containerEl.style.height = newH + "px";
+        }
+      };
+      const onUp = () => {
+        isResizing = false;
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
+  }
 
   // Close Button
   closeBtn.addEventListener("click", () => {
@@ -542,8 +666,9 @@ function updateContextPill(root, selectionText) {
 }
 
 function createShortcutHint() {
-  // Check if hint already exists
   if (document.getElementById("cursor-agent-hint")) return;
+
+  const hotkeyText = /Mac|iPhone|iPad/i.test(navigator.platform) ? "Option + K" : "Alt + K";
 
   const hint = document.createElement("div");
   hint.id = "cursor-agent-hint";
@@ -557,20 +682,44 @@ function createShortcutHint() {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 6px !important;
+    gap: 6px !important;
+    padding: 6px 8px !important;
     background: rgba(0, 0, 0, 0.06) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
-    border-radius: 50% !important;
+    border-radius: 20px !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
-    pointer-events: none !important;
+    pointer-events: auto !important;
     user-select: none !important;
+    cursor: default !important;
+    transition: border-radius 0.15s ease, padding 0.15s ease !important;
   `;
   const img = document.createElement("img");
   img.src = chrome.runtime.getURL("images/agent_cursor.svg");
   img.alt = "Agent shortcut";
-  img.style.cssText = "width: 20px !important; height: 20px !important; opacity: 0.6 !important;";
+  img.style.cssText = "width: 20px !important; height: 20px !important; opacity: 0.6 !important; flex-shrink: 0 !important;";
+  const span = document.createElement("span");
+  span.className = "cursor-agent-hint-text";
+  span.textContent = hotkeyText;
+  span.style.cssText = "font-size: 12px !important; color: rgba(0,0,0,0.6) !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; white-space: nowrap !important; max-width: 0 !important; overflow: hidden !important; opacity: 0 !important; transition: max-width 0.2s ease, opacity 0.2s ease !important;";
+
   hint.appendChild(img);
+  hint.appendChild(span);
+
+  hint.addEventListener("mouseenter", () => {
+    hint.style.borderRadius = "20px";
+    hint.style.paddingLeft = "10px";
+    hint.style.paddingRight = "10px";
+    span.style.maxWidth = "120px";
+    span.style.opacity = "1";
+  });
+  hint.addEventListener("mouseleave", () => {
+    hint.style.paddingLeft = "8px";
+    hint.style.paddingRight = "8px";
+    span.style.maxWidth = "0";
+    span.style.opacity = "0";
+  });
+
   document.body.appendChild(hint);
 }
 

@@ -1,8 +1,10 @@
-/* For overall agent bubble UI */
+/* For overall agent bubble UI – width/height set via JS for resize */
 .agent-bubble {
   background: #ffffff;
   width: 380px;
+  height: 260px;
   max-width: 90vw;
+  max-height: 85vh;
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
@@ -13,6 +15,31 @@
   flex-direction: column;
   transition: height 0.2s ease;
   animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Resize handle – bottom-right corner */
+.resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 1;
+}
+
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(0, 0, 0, 0.2);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: 0 0 2px 0;
 }
 
 /* For applying the semi trasparent look to the ui */
@@ -43,10 +70,36 @@
   border-bottom: 1px solid transparent;
 }
 
+/* Logo + Karet label – hover shows pin, click pins bubble, drag when pinned */
+.agent-brand {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 4px 6px;
+  margin: -4px 0 -4px -6px;
+  box-sizing: border-box;
+}
+
+.agent-brand:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.agent-brand.pinned {
+  cursor: grab;
+}
+
+.agent-brand.pinned:active {
+  cursor: grabbing;
+}
+
 /* Service Logo Formatting Wrap */
 .agent-icon {
   display: flex;
   align-items: center;
+  justify-content: center;
   margin-right: 8px;
 }
 
@@ -55,6 +108,7 @@
   height: 12px;
   width: 12px;
   object-fit: contain;
+  pointer-events: none;
 }
 
 /* Karet. title formatting */
@@ -215,9 +269,9 @@
   }
 }
 
-/* Style for input box */
+/* Style for input box – tight padding when no result yet */
 .input-area {
-  padding: 8px 16px 16px;
+  padding: 8px 16px 10px;
   display: flex;
   gap: 8px;
   align-items: flex-start;
@@ -284,17 +338,15 @@
   }
 }
 
-/* result display area from the LLM */
+/* result display area from the LLM – takes space only when visible */
 .result-area {
-  /* wanted to display it in a bit more transparent */
-  padding: 16px;
+  padding: 12px 16px 16px;
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(17.1px);
   -webkit-backdrop-filter: blur(17.1px);
-  max-height: 300px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-
-  /* Force GPU acceleration to prevent flickering? Got this from gemini  */
   transform: translateZ(0);
   will-change: transform;
   -webkit-transform: translate3d(0, 0, 0);
@@ -302,6 +354,9 @@
 
 .result-area.hidden {
   display: none;
+  flex: 0 0 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Markdown CSS once we get markdwon -> HTML elements -> for results UI display */
